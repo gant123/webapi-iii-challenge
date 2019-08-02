@@ -27,7 +27,7 @@ const router = express.Router();
 
 //custom middleware
 
-router.get('/', async (req, res) => {
+router.get('/', validateUser, async (req, res) => {
   try {
     const users = await db.get();
     res.status(200).json(users);
@@ -50,7 +50,7 @@ router.post('/', async (req, res) => {
   }
 });
 
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', validatePostId, async (req, res) => {
   try {
     const { id } = req.params;
     const remove = await db.remove(id);
@@ -65,7 +65,7 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
-router.put('/:id', async (req, res) => {
+router.put('/:id', validatePostId, validateUser, async (req, res) => {
   try {
     const { id } = req.params;
     if (req.body.name) {
@@ -82,7 +82,7 @@ router.put('/:id', async (req, res) => {
   }
 });
 
-router.get('/:id/posts', async (req, res) => {
+router.get('/:id/posts', validatePost, async (req, res) => {
   try {
     const { id } = req.params;
     const userPosts = await db.getUserPosts(id);
@@ -95,32 +95,55 @@ router.get('/:id/posts', async (req, res) => {
   }
 });
 
-// async function validatePostId(req, res, next) {
-//   try {
-//     const { id } = req.params;
+async function validatePostId(req, res, next) {
+  try {
+    const { id } = req.params;
 
-//     const post = await Posts.getById(id);
+    const post = await Posts.getById(id);
 
-//     if (post) {
-//       req.post = post;
-//       next();
-//     } else {
-//       res.status(404).json({ message: 'ID is not found bud!' });
-//     }
-//   } catch (error) {
-//     res.status(500).json(error);
-//   }
-// }
+    if (post) {
+      req.post = post;
+      next();
+    } else {
+      res.status(404).json({ message: 'ID is not found bud!' });
+    }
+  } catch (error) {
+    res.status(500).json(error);
+  }
+}
 
-// function requireBody(req, res, next) {
-//   if (req.body && Object.keys(req.body).length > 0) {
-//     next();
-//   } else {
-//     next({ message: 'You need to supply a body with this request' });
-//   }
-// }
+function requireBody(req, res, next) {
+  if (req.body && Object.keys(req.body).length > 0) {
+    next();
+  } else {
+    next({ message: 'You need to supply a body with this request' });
+  }
+}
 
-// function validateUser(req, res, next) {}
+function validateUser(req, res, next) {
+  const user = req.body;
 
-// function validatePost(req, res, next) {}
+  if (!user.name) {
+    res.status(400).json({
+      success: false,
+      message: 'Please provide a name for the user.'
+    });
+  } else {
+    req.user = user;
+    next();
+  }
+}
+
+function validatePost(req, res, next) {
+  const post = req.body;
+  if (!post.text) {
+    res.status(400).json({
+      success: false,
+      message: 'Please provide text for the post.'
+    });
+  } else {
+    req.post = post;
+    next();
+  }
+}
 module.exports = router;

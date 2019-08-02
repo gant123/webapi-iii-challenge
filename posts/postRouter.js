@@ -1,6 +1,5 @@
 const express = require('express');
 const Posts = require('./postDb');
-const User = require('../users/userDb');
 
 const router = express.Router();
 
@@ -31,16 +30,16 @@ router.delete('/:id', validatePostId, async (req, res) => {
   } catch {}
 });
 
-router.put('/:id', validatePostId, async (req, res) => {
+router.put('/:id', validatePostId, validateRequestBody, async (req, res) => {
   try {
-    const post = await Posts.update(req.params.id, req.body);
-    if (post) {
-      res.status(200).json(post);
+    const pos = await Posts.update(req.params.id, req.body);
+    if (pos) {
+      res.status(200).json({ pos });
     } else {
       res.status(404).json({ message: 'Sorry the post cannot be found!' });
     }
   } catch (err) {
-    res.status(500).json(error);
+    res.status(500).json(err);
   }
 });
 
@@ -59,6 +58,18 @@ async function validatePostId(req, res, next) {
     }
   } catch (error) {
     res.status(500).json(error);
+  }
+}
+
+function validateRequestBody(req, res, next) {
+  const post = req.body;
+
+  if (!post.text || !post.user_id) {
+    res.status(400).json({
+      message: 'Please provide text and a user id.'
+    });
+  } else {
+    next();
   }
 }
 
